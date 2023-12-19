@@ -57,6 +57,9 @@ unittest("string parsing") {
 	flags(table, ARGC_ARGV(3, "-v", "-c", compile));
 	ensure(!strcmp(string, compile)), ensure(verbose), ensure(opt == 0);
 
+	flags(table, ARGC_ARGV(2, "-v", "-copt"));
+	ensure(!strcmp(string, "opt")), ensure(verbose), ensure(opt == 0);
+
 	flags(table, ARGC_ARGV(4, "-v", "-c", compile, "-O3"));
 	ensure(!strcmp(string, compile)), ensure(verbose), ensure(opt == 3);
 }

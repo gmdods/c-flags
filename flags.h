@@ -23,6 +23,7 @@ struct option {
 
 static inline void flags_default(const struct option table[static 1]) {
 	struct option entry = {0};
+
 	for (size_t t = 0; (entry = table[t]).variable != NULL; ++t) {
 		switch (entry.type) {
 		case FLAG_BOOL: *((bool *) entry.variable) = false; break;
@@ -35,21 +36,30 @@ static inline void flags_default(const struct option table[static 1]) {
 	}
 }
 
-static inline short flag_assign(struct option entry, size_t argn,
-				const char * argv[static argn]) {
+static inline short flag_assign(struct option entry, const char * endp,
+				size_t argn, const char * argv[static argn]) {
 
-	const char * endp = {0};
 	switch (entry.type) {
-	case FLAG_BOOL: *((bool *) entry.variable) = true; return 0;
-	case FLAG_UINT:
-		endp = argv[0] + strcspn(argv[0], "0123456789");
-		if (!*endp) return -1;
-		*((unsigned *) entry.variable) = atoi(endp);
+	case FLAG_BOOL: {
+		*((bool *) entry.variable) = true;
 		return 0;
-	case FLAG_STRING:
-		if (0 == argn) return -1;
-		*((const char **) entry.variable) = argv[1];
-		return 1;
+	}
+	case FLAG_UINT: {
+		if (!endp || !*endp) {
+			if (0 == argn) return -1;
+			endp = argv[1];
+		}
+		*((unsigned *) entry.variable) = atoi(endp);
+		return endp == argv[1];
+	}
+	case FLAG_STRING: {
+		if (!endp || !*endp) {
+			if (0 == argn) return -1;
+			endp = argv[1];
+		}
+		*((const char **) entry.variable) = endp;
+		return endp == argv[1];
+	}
 	default: return -1;
 	}
 }
@@ -58,16 +68,19 @@ static inline short flag_dispatch(const struct option table[static 1],
 				  size_t argn, const char * argv[static argn]) {
 	const char * arg = argv[0];
 	struct option entry = {0};
+
 	if (!strcmp(arg, "--")) {
 		for (size_t t = 0; (entry = table[t]).variable != NULL; ++t) {
 			if (strcmp(arg + 2, entry.long_name)) continue;
-			short delta = flag_assign(entry, argn, argv);
+			short delta = flag_assign(entry, NULL, argn, argv);
 			if (delta) return delta;
 		}
 	} else if (arg[0] == '-') {
+		const char * endp = NULL;
 		for (size_t t = 0; (entry = table[t]).variable != NULL; ++t) {
-			if (!strchr(arg + 1, entry.short_name)) continue;
-			short delta = flag_assign(entry, argn, argv);
+			endp = strchr(arg + 1, entry.short_name);
+			if (!endp) continue;
+			short delta = flag_assign(entry, endp + 1, argn, argv);
 			if (delta) return delta;
 		}
 	}
