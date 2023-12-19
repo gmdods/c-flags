@@ -17,9 +17,9 @@
 unittest("boolean parsing") {
 	bool all = 0, verbose = 0, quiet = 0;
 	const struct option table[] = {
-	    {'a', "all", FLAG_BOOL, &all},
-	    {'v', "verbose", FLAG_BOOL, &verbose},
-	    {'q', "quiet", FLAG_BOOL, &quiet},
+	    {'a', FLAG_BOOL, "all", &all},
+	    {'v', FLAG_BOOL, "verbose", &verbose},
+	    {'q', FLAG_BOOL, "quiet", &quiet},
 	    {0},
 	};
 
@@ -39,27 +39,38 @@ unittest("boolean parsing") {
 unittest("string parsing") {
 	bool verbose = 0;
 	char * string = NULL;
-	unsigned opt = 0;
 	const struct option table[] = {
-	    {'v', "verbose", FLAG_BOOL, &verbose},
-	    {'c', "compile", FLAG_STRING, &string},
-	    {'O', "opt", FLAG_UINT, &opt},
+	    {'v', FLAG_BOOL, "verbose", &verbose},
+	    {'c', FLAG_STRING, "compile", &string},
 	    {0},
 	};
 	static const char * compile = "print(1 + 2)";
 
 	flags(table, ARGC_ARGV(1, "-v"));
-	ensure(string == NULL), ensure(verbose), ensure(opt == 0);
+	ensure(string == NULL), ensure(verbose);
 
 	flags(table, ARGC_ARGV(2, "-c", compile));
-	ensure(!strcmp(string, compile)), ensure(!verbose), ensure(opt == 0);
+	ensure(!strcmp(string, compile)), ensure(!verbose);
 
 	flags(table, ARGC_ARGV(3, "-v", "-c", compile));
-	ensure(!strcmp(string, compile)), ensure(verbose), ensure(opt == 0);
+	ensure(!strcmp(string, compile)), ensure(verbose);
+}
 
-	flags(table, ARGC_ARGV(2, "-v", "-copt"));
-	ensure(!strcmp(string, "opt")), ensure(verbose), ensure(opt == 0);
+unittest("argument parsing") {
+	bool verbose = 0;
+	char * string = NULL;
+	unsigned opt = 0;
+	const struct option table[] = {
+	    {'v', FLAG_BOOL, "verbose", &verbose},
+	    {'s', FLAG_STRING, "standard", &string},
+	    {'O', FLAG_UINT, "opt", &opt},
+	    {0},
+	};
+	static const char * option = "option";
 
-	flags(table, ARGC_ARGV(4, "-v", "-c", compile, "-O3"));
-	ensure(!strcmp(string, compile)), ensure(verbose), ensure(opt == 3);
+	flags(table, ARGC_ARGV(2, "-v", "-s=option"));
+	ensure(!strcmp(string, option)), ensure(verbose), ensure(opt == 0);
+
+	flags(table, ARGC_ARGV(4, "-v", "-s", option, "-O3"));
+	ensure(!strcmp(string, option)), ensure(verbose), ensure(opt == 3);
 }

@@ -8,16 +8,15 @@
 #error "Must have at least C99"
 #endif
 
-enum flag {
-	FLAG_BOOL,
-	FLAG_UINT,
-	FLAG_STRING,
-};
-
 struct option {
+
 	char short_name;
+	enum flag_type {
+		FLAG_BOOL,
+		FLAG_UINT,
+		FLAG_STRING,
+	} type;
 	const char * long_name;
-	enum flag type;
 	void * variable;
 };
 
@@ -68,18 +67,35 @@ static inline short flag_dispatch(const struct option table[static 1],
 				  size_t argn, const char * argv[static argn]) {
 	const char * arg = argv[0];
 	struct option entry = {0};
+	const char * endp = NULL;
 
 	if (!strcmp(arg, "--")) {
+		arg += 2;
 		for (size_t t = 0; (entry = table[t]).variable != NULL; ++t) {
-			if (strcmp(arg + 2, entry.long_name)) continue;
-			short delta = flag_assign(entry, NULL, argn, argv);
+			if (entry.type == FLAG_BOOL) {
+				if (strcmp(arg, entry.long_name)) continue;
+			} else {
+				endp = strchr(arg, '=');
+				if (!endp) continue;
+				if (strncmp(arg, entry.long_name, endp - arg))
+					continue;
+				endp += 1;
+			}
+			short delta = flag_assign(entry, endp, argn, argv);
 			if (delta) return delta;
 		}
 	} else if (arg[0] == '-') {
-		const char * endp = NULL;
+		arg += 1;
 		for (size_t t = 0; (entry = table[t]).variable != NULL; ++t) {
-			endp = strchr(arg + 1, entry.short_name);
-			if (!endp) continue;
+			if (entry.type == FLAG_BOOL) {
+				endp = strchr(arg, entry.short_name);
+				if (!endp) continue;
+			} else {
+				endp = arg;
+				if (endp[0] != entry.short_name) continue;
+				if (endp[1] == '=') endp += 1;
+			}
+
 			short delta = flag_assign(entry, endp + 1, argn, argv);
 			if (delta) return delta;
 		}
