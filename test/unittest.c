@@ -11,9 +11,9 @@
 unittest("character parsing") {
 	bool all = 0, verbose = 0, quiet = 0;
 	const struct option table[] = {
-	    {'a', &all},
-	    {'v', &verbose},
-	    {'q', &quiet},
+	    {'a', "all", &all},
+	    {'v', "verbose",  &verbose},
+	    {'q', "quiet", &quiet},
 	    {0},
 	};
 
@@ -25,4 +25,7 @@ unittest("character parsing") {
 
 	flags(table, 2, (const char * [3]){__FILE__, "-q", NULL});
 	ensure(!all); ensure(!verbose); ensure(quiet);
+
+	flags(table, 3, (const char * [4]){__FILE__, "-a", "--verbose", NULL});
+	ensure(all); ensure(verbose); ensure(!quiet);
 }
